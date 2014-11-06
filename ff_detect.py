@@ -234,33 +234,22 @@ else:
 # FUNCTIONS DEFINITIONS
 ##########################################################################################
 
+global nb_ff
 global U_ref, U_gro
 global upper_ref, upper_gro, lower_ref, lower_gro
-
-#data declatation
-global other1_pres, other2_pres, other1_dict, other2_dict
-global upper1, upper2, lower1, lower2
-global ff_u1_to_l2, ff_l1_to_u2, ff_u2_to_l1, ff_l2_to_u1
-global up1_to_lw2, lw1_to_up2, up2_to_lw1, lw2_to_up1
-other1_pres="no"
-other2_pres="no"
-other1_dict={}
-other2_dict={}
-ff_u1_to_l2={}
-ff_l1_to_u2={}
-ff_u2_to_l1={}
-ff_l2_to_u1={}
-
+nb_ff = 0
+upper_to_lower = {}
+lower_to_upper = {}
 
 def data_loading():
 	
 	global U_ref, U_gro
 	
 	print "\nLoading files..."
-	print " -file1..."
-	U_ref = Universe(reffilename)
-	print " -file2..."
-	U_gro = Universe(grofilename)
+	print " -" + str(args.reffilename) + "..."
+	U_ref = Universe(args.reffilename)
+	print " -" + str(args.grofilename) + "..."
+	U_gro = Universe(args.grofilename)
 	return
 def identify_leaflets_ref():
 
@@ -271,12 +260,12 @@ def identify_leaflets_ref():
 	#use LeafletFinder:
 	if args.cutoff_leaflet != 'large':
 		if args.cutoff_leaflet == 'optimise':
-			print " -optimising cutoff for file1..."
+			print " -optimising cutoff..."
 			tmp_cutoff_value = MDAnalysis.analysis.leaflet.optimize_cutoff(U_ref, "name " + str(args.beadname))
-			print " -identifying leaflets for file1..."
+			print " -identifying leaflets..."
 			L_ref = MDAnalysis.analysis.leaflet.LeafletFinder(U_ref, "name " + str(args.beadname), tmp_cutoff_value[0])
 		else:
-			print " -identifying leaflets for file1..."
+			print " -identifying leaflets..."
 			L_ref = MDAnalysis.analysis.leaflet.LeafletFinder(U_ref, "name " + str(args.beadname), args.cutoff_leaflet)
 		if np.shape(L_ref.groups())[0]<2:
 			print "Error: imposssible to identify 2 leaflets."
@@ -291,14 +280,14 @@ def identify_leaflets_ref():
 
 	#use cog 
 	else:
-		print " -identifying leaflets for file1..."
+		print " -identifying leaflets..."
 		tmp_leaflets = U_ref.selectAtoms("name " + str(args.beadname))
 		tmp_lipids_avg_z = tmp_leaflets.centerOfGeometry()[2]
 		upper_ref = tmp_leaflets.selectAtoms("prop z > " + str(tmp_lipids_avg_z))
 		lower_ref = tmp_leaflets.selectAtoms("prop z < " + str(tmp_lipids_avg_z))
 	
 	#display results	
-	print " -found 2 leaflets: " + upper_ref.numberOfResidues() + "(upper) and " + lower_ref.numberOfResidues() + "(lower) lipids"
+	print " -found 2 leaflets: ", upper_ref.numberOfResidues(), "(upper) and ", lower_ref.numberOfResidues(), "(lower) lipids"
 
 	return
 def identify_leaflets_gro():
@@ -310,12 +299,12 @@ def identify_leaflets_gro():
 	#use LeafletFinder:
 	if args.cutoff_leaflet != 'large':
 		if args.cutoff_leaflet == 'optimise':
-			print " -optimising cutoff for file1..."
+			print " -optimising cutoff..."
 			tmp_cutoff_value = MDAnalysis.analysis.leaflet.optimize_cutoff(U_gro, "name " + str(args.beadname))
-			print " -identifying leaflets for file1..."
+			print " -identifying leaflets..."
 			L_gro = MDAnalysis.analysis.leaflet.LeafletFinder(U_gro, "name " + str(args.beadname), tmp_cutoff_value[0])
 		else:
-			print " -identifying leaflets for file1..."
+			print " -identifying leaflets..."
 			L_gro = MDAnalysis.analysis.leaflet.LeafletFinder(U_gro, "name " + str(args.beadname), args.cutoff_leaflet)
 		if np.shape(L_gro.groups())[0]<2:
 			print "Error: imposssible to identify 2 leaflets."
@@ -330,7 +319,7 @@ def identify_leaflets_gro():
 
 	#use cog 
 	else:
-		print " -identifying leaflets for file1..."
+		print " -identifying leaflets..."
 		tmp_leaflets = U_gro.selectAtoms("name " + str(args.beadname))
 		tmp_lipids_avg_z = tmp_leaflets.centerOfGeometry()[2]
 		upper_gro = tmp_leaflets.selectAtoms("prop z > " + str(tmp_lipids_avg_z))
@@ -341,54 +330,100 @@ def identify_leaflets_gro():
 	print " -found 2 leaflets: " + upper_gro.numberOfResidues() + "(upper) and " + lower_gro.numberOfResidues() + "(lower) lipids"
 	
 	return
-
 def identify_ff():
 
+	print "\nIdentifying flip-flopping lipids..."
+	
 	#method 1: compare leaflets
 	#--------------------------
 	if args.neighbours == "no":
 		
-		#compare contents
-		upref_to_lwgro = np.setdiff1d(upper_ref.resnums(),upper_gro.resnums())		#lipids in upper_ref NOT in upper_gro
-		lwref_to_upgro = np.setdiff1d(lower_ref.resnums(),lower_gro.resnums())		#lipids in lower_ref NOT in lower_gro
-		upgro_to_lwref = np.setdiff1d(upper_gro.resnums(),upper_ref.resnums())		#lipids in upper_gro NOT in upper_ref
-		lwgro_to_upref = np.setdiff1d(lower_gro.resnums(),lower_ref.resnums())		#lipids in lower_gro NOT in lower_ref
+		##compare contents
+		#upref_to_lwgro = np.setdiff1d(upper_ref.resnums(),upper_gro.resnums())		#lipids in upper_ref NOT in upper_gro
+		#lwref_to_upgro = np.setdiff1d(lower_ref.resnums(),lower_gro.resnums())		#lipids in lower_ref NOT in lower_gro
+		#upgro_to_lwref = np.setdiff1d(upper_gro.resnums(),upper_ref.resnums())		#lipids in upper_gro NOT in upper_ref
+		#lwgro_to_upref = np.setdiff1d(lower_gro.resnums(),lower_ref.resnums())		#lipids in lower_gro NOT in lower_ref
 
-		#build lists
-		for r in upref_to_lwgro:										#lipids in upper1 NOT in upper2
-			tmp = U_ref.selectAtoms("resid " + str(r))
-			if tmp.resnames()[0] in ff_uref_to_lgro.keys():
-				ff_uref_to_lgro[tmp.resnames()[0]].append(r)
-			else:
-				ff_uref_to_lgro[tmp.resnames()[0]]=[]
-				ff_uref_to_lgro[tmp.resnames()[0]].append(r)
-		for r in lwref_to_upgro:										#lipids in lower1 NOT in lower2
-			tmp = U_ref.selectAtoms("resid " + str(r))
-			if tmp.resnames()[0] in ff_lref_to_ugro.keys():
-				ff_lref_to_ugro[tmp.resnames()[0]].append(r)
-			else:
-				ff_lref_to_ugro[tmp.resnames()[0]]=[]
-				ff_lref_to_ugro[tmp.resnames()[0]].append(r)
-		for r in upgro_to_lwref:										#lipids in upper2 NOT in upper1
-			tmp=U_ref.selectAtoms("resid " + str(r))
-			if tmp.resnames()[0] in ff_ugro_to_lref.keys():
-				ff_ugro_to_lref[tmp.resnames()[0]].append(r)
-			else:
-				ff_ugro_to_lref[tmp.resnames()[0]]=[]
-				ff_ugro_to_lref[tmp.resnames()[0]].append(r)
-		for r in lwgro_to_upref:										#lipids in lower2 NOT in lower1
-			tmp=U_ref.selectAtoms("resid " + str(r))
-			if tmp.resnames()[0] in ff_lgro_to_uref.keys():
-				ff_lgro_to_uref[tmp.resnames()[0]].append(r)
-			else:
-				ff_lgro_to_uref[tmp.resnames()[0]]=[]
-				ff_lgro_to_uref[tmp.resnames()[0]].append(r)	
+		##build lists
+		#for r in upref_to_lwgro:										#lipids in upper1 NOT in upper2
+			#tmp = U_ref.selectAtoms("resid " + str(r))
+			#if tmp.resnames()[0] in ff_uref_to_lgro.keys():
+				#ff_uref_to_lgro[tmp.resnames()[0]].append(r)
+			#else:
+				#ff_uref_to_lgro[tmp.resnames()[0]]=[]
+				#ff_uref_to_lgro[tmp.resnames()[0]].append(r)
+		#for r in lwref_to_upgro:										#lipids in lower1 NOT in lower2
+			#tmp = U_ref.selectAtoms("resid " + str(r))
+			#if tmp.resnames()[0] in ff_lref_to_ugro.keys():
+				#ff_lref_to_ugro[tmp.resnames()[0]].append(r)
+			#else:
+				#ff_lref_to_ugro[tmp.resnames()[0]]=[]
+				#ff_lref_to_ugro[tmp.resnames()[0]].append(r)
+		#for r in upgro_to_lwref:										#lipids in upper2 NOT in upper1
+			#tmp=U_ref.selectAtoms("resid " + str(r))
+			#if tmp.resnames()[0] in ff_ugro_to_lref.keys():
+				#ff_ugro_to_lref[tmp.resnames()[0]].append(r)
+			#else:
+				#ff_ugro_to_lref[tmp.resnames()[0]]=[]
+				#ff_ugro_to_lref[tmp.resnames()[0]].append(r)
+		#for r in lwgro_to_upref:										#lipids in lower2 NOT in lower1
+			#tmp=U_ref.selectAtoms("resid " + str(r))
+			#if tmp.resnames()[0] in ff_lgro_to_uref.keys():
+				#ff_lgro_to_uref[tmp.resnames()[0]].append(r)
+			#else:
+				#ff_lgro_to_uref[tmp.resnames()[0]]=[]
+				#ff_lgro_to_uref[tmp.resnames()[0]].append(r)	
+		print "TO DO"
 
 	#method 2: compare neighbours
 	#----------------------------
 	else:
-		print "to do"
+		tmp_upper_neighbours = {}
+		tmp_lower_neighbours = {}
+		tmp_upper_nb = upper_ref.numberOfResidues()
+		tmp_lower_nb = lower_ref.numberOfResidues()
+		tmp_upper_resnums = upper_ref.resnums()
+		tmp_lower_resnums = lower_ref.resnums()
 
+		for a in range(0,tmp_lower_nb):
+			#display progress
+			progress = '\r -lower leaflet: processing lipid ' + str(a+1) + '/' + str(tmp_lower_nb) + '        '
+			sys.stdout.flush()
+			sys.stdout.write(progress)
+			
+			#check whether more than half of the neighbours belong to the lower leaflet
+			tmp_neighbours = U_gro.selectAtoms("around " + str(args.neighbours) + " resid " + str(lower_ref[a].resid)).resnums()
+			tmp_neighbours = np.in1d(tmp_neighbours, tmp_upper_resnums)
+			#debug
+			#print tmp_neighbours
+
+			tmp_lower_neighbours[a] =  len(tmp_neighbours[tmp_neighbours==True]) / float(len(tmp_neighbours))
+			
+			#debug
+			#print tmp_lower_neighbours[a]
+						
+			if tmp_lower_neighbours[a] > 0.5:
+				
+				lower_to_upper[lower_ref[a].resnum] = lower_ref[a].resname
+				#debug
+				print lower_ref[a].resnum
+
+		#debug
+		print lower_to_upper
+
+		for a in range(0,tmp_upper_nb):
+			#display progress
+			progress = '\r -upper leaflet: processing lipid ' + str(a+1) + '/' + str(tmp_upper_nb) + '        '
+			sys.stdout.flush()
+			sys.stdout.write(progress)
+			
+			#check whether more than half of the neighbours belong to the lower leaflet
+			tmp_neighbours = U_gro.selectAtoms("around " + str(args.neighbours) + " resid " + str(upper_ref[a].resid)).resnums()
+			tmp_neighbours = np.in1d(tmp_neighbours, tmp_lower_resnums)
+			tmp_upper_neighbours[a] =  len(tmp_neighbours[tmp_neighbours==True]) / len(tmp_neighbours)
+			if tmp_upper_neighbours[a] > 0.5:
+				upper_to_lower[upper_ref[a].resid] = a.resname
+		print ''
 	
 	return
 
@@ -413,33 +448,13 @@ def write_selection_file():
 # ALGORITHM
 ################################################################################################################################################
 
-#identify leaflets
-print "\nIdentifying leaflets..."
-process_leaflets()
-
-#identify flip-flopping lipids
-print "\nIdentifying flip-flopping lipids..."
-calc_statistics()
-nb_ff=numpy.size(up1_to_lw2) + numpy.size(lw1_to_up2)
-print " -found " + str(nb_ff) + " flipflopping lipids."
-
-#write outputs
-if nb_ff>0:
-	#on screen display
-	u2l_results=""
-	l2u_results=""
-	for r in ff_u1_to_l2.keys():
-		u2l_results+=" " + str(r) + " (" + str(numpy.size(ff_u1_to_l2[r])) + ")"
-	for r in ff_l1_to_u2.keys():
-		l2u_results+=" " + str(r) + " (" + str(numpy.size(ff_l1_to_u2[r])) + ")"
-	print " -upper to lower: "  + u2l_results
-	print " -lower to upper: "  + l2u_results
-	
-	#write files
-	print "\nWriting outputs..."
-	write_ff_stats()
+data_loading()
+identify_leaflets_ref()
+if args.neighbours == "no":
+	identify_leaflets_gro()
+identify_ff()
+if nb_ff > 0:
 	write_selection_file()
-	graph_ff_stats()
 
 #exit
 sys.exit(0)

@@ -388,7 +388,6 @@ def identify_ff():
 		tmp_lower_resnums = lower_ref.resnums()
 
 		for a_index in range(0,tmp_upper_nb):
-		#for a_index in range(0,1000):
 			#display progress
 			progress = '\r -upper leaflet: processing lipid ' + str(a_index+1) + '/' + str(tmp_upper_nb) + '        '
 			sys.stdout.flush()
@@ -401,13 +400,9 @@ def identify_ff():
 			tmp_upper_neighbours[a_index] =  len(tmp_neighbours[tmp_neighbours==True]) / len(tmp_neighbours)
 			if tmp_upper_neighbours[a_index] > 0.5:
 				upper_to_lower[tmp_a.resnum] = tmp_a.resname
-				#debug
-				print tmp_a.resnum
-
 		print ''
 	
 		for a_index in range(0,tmp_lower_nb):
-		#for a_index in range(0,1000):
 			#display progress
 			progress = '\r -lower leaflet: processing lipid ' + str(a_index+1) + '/' + str(tmp_lower_nb) + '        '
 			sys.stdout.flush()
@@ -420,8 +415,6 @@ def identify_ff():
 			tmp_lower_neighbours[a_index] =  len(tmp_neighbours[tmp_neighbours==True]) / float(len(tmp_neighbours))
 			if tmp_lower_neighbours[a_index] > 0.5:				
 				lower_to_upper[tmp_a.resnum] = tmp_a.resname
-				#debug
-				print tmp_a.resnum
 		print ''
 		
 		#count nb of flip-flopping lipids

@@ -422,7 +422,7 @@ def identify_ff():
 			tmp_neighbours = np.in1d(tmp_neighbours, tmp_upper_resnums)
 			if len(tmp_neighbours) == 0:
 				print ""
-				print "Warning: no lipid neighbours within ", str(args.neighbours), "of bead ", str(args.beadname), "of ", str(tmp_a.resname), str(tmp_a.resid) 
+				print "  Warning: no lipid neighbours within ", str(args.neighbours), "of bead ", str(args.beadname), "of ", str(tmp_a.resname), str(tmp_a.resid) 
 				print ""
 			else:
 				tmp_lower_neighbours[a_index] =  len(tmp_neighbours[tmp_neighbours==True]) / float(len(tmp_neighbours))

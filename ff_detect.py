@@ -389,7 +389,8 @@ def identify_ff():
 		tmp_lower_nb = lower_ref.numberOfResidues()
 		tmp_upper_resnums = upper_ref.resnums()
 		tmp_lower_resnums = lower_ref.resnums()
-
+		tmp_U_gro_lip = U_gro.selectAtoms("name " + str(args.beadname))
+		
 		for a_index in range(0,tmp_upper_nb):
 			#display progress
 			progress = '\r -upper leaflet: processing lipid ' + str(a_index+1) + '/' + str(tmp_upper_nb) + '        '
@@ -398,11 +399,15 @@ def identify_ff():
 			
 			#check whether more than half of the neighbours belong to the lower leaflet
 			tmp_a = upper_ref[a_index]
-			tmp_neighbours = U_gro.selectAtoms("around " + str(args.neighbours) + " resid " + str(tmp_a.resid)).resnums()
+			tmp_neighbours = tmp_U_gro_lip.selectAtoms("around " + str(args.neighbours) + " resid " + str(tmp_a.resid)).resnums()
 			tmp_neighbours = np.in1d(tmp_neighbours, tmp_lower_resnums)
-			tmp_upper_neighbours[a_index] =  len(tmp_neighbours[tmp_neighbours==True]) / len(tmp_neighbours)
-			if tmp_upper_neighbours[a_index] > 0.5:
-				upper_to_lower[tmp_a.resnum] = tmp_a.resname
+			if len(tmp_neighbours) == 0:
+				print ""
+				print "  Warning: no lipid neighbours within", str(args.neighbours), "of bead", str(args.beadname), "of", str(tmp_a.resname), str(tmp_a.resid) 
+			else:
+				tmp_upper_neighbours[a_index] =  len(tmp_neighbours[tmp_neighbours==True]) / len(tmp_neighbours)
+				if tmp_upper_neighbours[a_index] > 0.5:
+					upper_to_lower[tmp_a.resnum] = tmp_a.resname
 		print ''
 	
 		for a_index in range(0,tmp_lower_nb):
@@ -413,11 +418,16 @@ def identify_ff():
 			
 			#check whether more than half of the neighbours belong to the lower leaflet
 			tmp_a = lower_ref[a_index]
-			tmp_neighbours = U_gro.selectAtoms("around " + str(args.neighbours) + " resid " + str(tmp_a.resid)).resnums()
+			tmp_neighbours = tmp_U_gro_lip.selectAtoms("around " + str(args.neighbours) + " resid " + str(tmp_a.resid)).resnums()
 			tmp_neighbours = np.in1d(tmp_neighbours, tmp_upper_resnums)
-			tmp_lower_neighbours[a_index] =  len(tmp_neighbours[tmp_neighbours==True]) / float(len(tmp_neighbours))
-			if tmp_lower_neighbours[a_index] > 0.5:				
-				lower_to_upper[tmp_a.resnum] = tmp_a.resname
+			if len(tmp_neighbours) == 0:
+				print ""
+				print "Warning: no lipid neighbours within ", str(args.neighbours), "of bead ", str(args.beadname), "of ", str(tmp_a.resname), str(tmp_a.resid) 
+				print ""
+			else:
+				tmp_lower_neighbours[a_index] =  len(tmp_neighbours[tmp_neighbours==True]) / float(len(tmp_neighbours))
+				if tmp_lower_neighbours[a_index] > 0.5:				
+					lower_to_upper[tmp_a.resnum] = tmp_a.resname
 		print ''
 		
 		#count nb of flip-flopping lipids

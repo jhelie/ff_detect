@@ -427,6 +427,8 @@ def identify_ff():
 
 def write_selection_file():
 	
+	print "\nWriting selection files..."
+	
 	#text format
 	#-----------
 	#open file
@@ -442,21 +444,54 @@ def write_selection_file():
 	#vmd and pml format
 	#------------------
 	if len(upper_to_lower.keys()) > 0:
-		writer_vmd = writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/ff_upper_to_lower")
-		writer_pml = writer_vmd = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/ff_upper_to_lower")
-		tmp_u2l = MDAnalysis.core.AtomGroup.AtomGroup([])
-		for r_num in upper_to_lower.keys():
-			tmp_u2l += U_ref.selectAtoms("resname " + str(upper_to_lower[r_num]) + " and resnum " + str(r_num))
-		writer_vmd.write(tmp_u2l)
-		writer_pml.write(tmp_u2l)
+		#create writers instances
+		leaflet_writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/upper")
+		leaflet_writer_pml = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/upper")
+		ff_writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/ff_upper_to_lower")
+		ff_writer_pml = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/ff_upper_to_lower")
+
+		#create selection string
+		for r_index in range(0,len(upper_to_lower.keys())):
+			r_num = upper_to_lower.keys()[r_index]
+			if r_index == 0:
+				tmp_ff_u2l_string = "(resname " + str(upper_to_lower[r_num]) + " and resnum " + str(r_num) + ")"
+			else:
+				tmp_ff_u2l_string += " or (resname " + str(upper_to_lower[r_num]) + " and resnum " + str(r_num) + ")"
+		
+		#create selections
+		upper_clean = upper_ref.selectAtoms(" not (" + str(tmp_ff_u2l_string) + ")")
+		tmp_u2l = U_ref.selectAtoms(str(tmp_ff_u2l_string))
+		
+		#write selections
+		leaflet_writer_vmd.write(upper_clean, name = "upper")
+		leaflet_writer_pml.write(upper_clean, name = "upper")
+		ff_writer_vmd.write(tmp_u2l, name = "ff_u2l")
+		ff_writer_pml.write(tmp_u2l, name = "ff_u2l")
+	
 	if len(lower_to_upper.keys()) > 0:
-		writer_vmd = writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/ff_lower_to_upper")
-		writer_pml = writer_vmd = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/ff_lower_to_upper")
-		tmp_l2u = MDAnalysis.core.AtomGroup.AtomGroup([])
-		for r_num in upper_to_lower.keys():
-			tmp_l2u += U_ref.selectAtoms("resname " + str(upper_to_lower[r_num]) + " and resnum " + str(r_num))
-		writer_vmd.write(tmp_l2u)
-		writer_pml.write(tmp_l2u)
+		#create writers instances
+		leaflet_writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/lower")
+		leaflet_writer_pml = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/lower")
+		ff_writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/ff_lower_to_upper")
+		ff_writer_pml = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/ff_lower_to_upper")
+		
+		#create selection string
+		for r_index in range(0,len(lower_to_upper.keys())):
+			r_num = lower_to_upper.keys()[r_index]
+			if r_index == 0:
+				tmp_ff_l2u_string = "(resname " + str(lower_to_upper[r_num]) + " and resnum " + str(r_num) + ")"
+			else:
+				tmp_ff_l2u_string += " or (resname " + str(lower_to_upper[r_num]) + " and resnum " + str(r_num) + ")"
+		
+		#create selections
+		lower_clean = lower_ref.selectAtoms(" not (" + str(tmp_ff_u2l_string) + ")")
+		tmp_l2u = U_ref.selectAtoms(str(tmp_ff_l2u_string))
+		
+		#write selections
+		leaflet_writer_vmd.write(lower_clean, name = "lower")
+		leaflet_writer_pml.write(lower_clean, name = "lower")
+		ff_writer_vmd.write(tmp_l2u, name = "ff_l2u")
+		ff_writer_pml.write(tmp_l2u, name = "ff_l2u")
 
 	return
 

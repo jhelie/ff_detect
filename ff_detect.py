@@ -21,6 +21,8 @@ author: Jean Helie (jean.helie@bioch.ox.ac.uk)
 git: https://github.com/jhelie/ff_detect
 **********************************************
 	
+TO DO: implement the 'classic' approach back.
+
 [ DESCRITPION ]
 
 This script identifies the phospholipids which flip-flopped between two frames and

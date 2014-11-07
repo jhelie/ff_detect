@@ -211,7 +211,7 @@ if args.cutoff_leaflet != "large" and args.cutoff_leaflet != "optimise":
 # create folders and log file
 #=========================================================================================
 if args.output_folder=="no":
-	args.output_folder="ff_" + args.reffilename[:-4] + '_' + args.grofilename[:-4]
+	args.output_folder="ff_detect_" + args.reffilename[:-4] + '_' + args.grofilename[:-4]
 if os.path.isdir(args.output_folder):
 	print "Error: folder " + str(args.output_folder) + " already exists, choose a different output name via -o."
 	sys.exit(1)
@@ -332,6 +332,8 @@ def identify_leaflets_gro():
 	return
 def identify_ff():
 
+	global nb_ff
+	
 	print "\nIdentifying flip-flopping lipids..."
 	
 	#method 1: compare leaflets
@@ -385,61 +387,61 @@ def identify_ff():
 		tmp_upper_resnums = upper_ref.resnums()
 		tmp_lower_resnums = lower_ref.resnums()
 
-		for a in range(0,tmp_lower_nb):
+		for a_index in range(0,tmp_upper_nb):
+		#for a_index in range(0,1000):
 			#display progress
-			progress = '\r -lower leaflet: processing lipid ' + str(a+1) + '/' + str(tmp_lower_nb) + '        '
+			progress = '\r -upper leaflet: processing lipid ' + str(a_index+1) + '/' + str(tmp_upper_nb) + '        '
 			sys.stdout.flush()
 			sys.stdout.write(progress)
 			
 			#check whether more than half of the neighbours belong to the lower leaflet
-			tmp_neighbours = U_gro.selectAtoms("around " + str(args.neighbours) + " resid " + str(lower_ref[a].resid)).resnums()
-			tmp_neighbours = np.in1d(tmp_neighbours, tmp_upper_resnums)
-			#debug
-			#print tmp_neighbours
-
-			tmp_lower_neighbours[a] =  len(tmp_neighbours[tmp_neighbours==True]) / float(len(tmp_neighbours))
-			
-			#debug
-			#print tmp_lower_neighbours[a]
-						
-			if tmp_lower_neighbours[a] > 0.5:
-				
-				lower_to_upper[lower_ref[a].resnum] = lower_ref[a].resname
-				#debug
-				print lower_ref[a].resnum
-
-		#debug
-		print lower_to_upper
-
-		for a in range(0,tmp_upper_nb):
-			#display progress
-			progress = '\r -upper leaflet: processing lipid ' + str(a+1) + '/' + str(tmp_upper_nb) + '        '
-			sys.stdout.flush()
-			sys.stdout.write(progress)
-			
-			#check whether more than half of the neighbours belong to the lower leaflet
-			tmp_neighbours = U_gro.selectAtoms("around " + str(args.neighbours) + " resid " + str(upper_ref[a].resid)).resnums()
+			tmp_a = upper_ref[a_index]
+			tmp_neighbours = U_gro.selectAtoms("around " + str(args.neighbours) + " resid " + str(tmp_a.resid)).resnums()
 			tmp_neighbours = np.in1d(tmp_neighbours, tmp_lower_resnums)
-			tmp_upper_neighbours[a] =  len(tmp_neighbours[tmp_neighbours==True]) / len(tmp_neighbours)
-			if tmp_upper_neighbours[a] > 0.5:
-				upper_to_lower[upper_ref[a].resid] = a.resname
+			tmp_upper_neighbours[a_index] =  len(tmp_neighbours[tmp_neighbours==True]) / len(tmp_neighbours)
+			if tmp_upper_neighbours[a_index] > 0.5:
+				upper_to_lower[tmp_a.resnum] = tmp_a.resname
+				#debug
+				print tmp_a.resnum
+
 		print ''
 	
+		for a_index in range(0,tmp_lower_nb):
+		#for a_index in range(0,1000):
+			#display progress
+			progress = '\r -lower leaflet: processing lipid ' + str(a_index+1) + '/' + str(tmp_lower_nb) + '        '
+			sys.stdout.flush()
+			sys.stdout.write(progress)
+			
+			#check whether more than half of the neighbours belong to the lower leaflet
+			tmp_a = lower_ref[a_index]
+			tmp_neighbours = U_gro.selectAtoms("around " + str(args.neighbours) + " resid " + str(tmp_a.resid)).resnums()
+			tmp_neighbours = np.in1d(tmp_neighbours, tmp_upper_resnums)
+			tmp_lower_neighbours[a_index] =  len(tmp_neighbours[tmp_neighbours==True]) / float(len(tmp_neighbours))
+			if tmp_lower_neighbours[a_index] > 0.5:				
+				lower_to_upper[tmp_a.resnum] = tmp_a.resname
+				#debug
+				print tmp_a.resnum
+		print ''
+		
+		#count nb of flip-flopping lipids
+		nb_ff = len(upper_to_lower.keys()) + len(lower_to_upper.keys())
+		
 	return
 
 def write_selection_file():
-	#-------------------------------------------------------------------
-	# Write selection file which can be used as input by flipflop_stat
-	#-------------------------------------------------------------------
-	global ff_u1_to_l2, ff_l1_to_u2, ff_u2_to_l1, ff_l2_to_u1	
 	
-	output_sele = open(os.getcwd() + '/' + outputname + '/flipflop.sele', 'w')
-	for s in ff_u1_to_l2:
-		for r in ff_u1_to_l2[s]:
-			output_sele.write(str(s) + "," + str(r) + ",upper,PO4\n")
-	for s in ff_l1_to_u2:
-		for r in ff_l1_to_u2[s]:
-			output_sele.write(str(s) + "," + str(r) + ",lower,PO4\n")
+	#open file
+	output_sele = open(os.getcwd() + '/' + args.output_folder + '/flipflop.sele', 'w')
+	
+	#upper to lower
+	for r_num in upper_to_lower.keys():
+		output_sele.write(str(upper_to_lower[r_num]) + "," + str(r_num) + ",upper," + str(args.beadname) + "\n")
+
+	#lower to upper
+	for r_num in lower_to_upper.keys():
+		output_sele.write(str(lower_to_upper[r_num]) + "," + str(r_num) + ",lower," + str(args.beadname) + "\n")
+	
 	output_sele.close()
 	
 	return
@@ -455,6 +457,9 @@ if args.neighbours == "no":
 identify_ff()
 if nb_ff > 0:
 	write_selection_file()
+	print "\nFinished successfully!", str(nb_ff), " flip-flops detected, check results in ", str(args.output_folder)
+else:
+	print "\nFinished successfully! 0 flip-flops detected."
 
 #exit
 sys.exit(0)

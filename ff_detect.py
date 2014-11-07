@@ -388,8 +388,7 @@ def identify_ff():
 		tmp_upper_resnums = upper_ref.resnums()
 		tmp_lower_resnums = lower_ref.resnums()
 
-		#for a_index in range(0,tmp_upper_nb):
-		for a_index in range(0,1):
+		for a_index in range(0,tmp_upper_nb):
 			#display progress
 			progress = '\r -upper leaflet: processing lipid ' + str(a_index+1) + '/' + str(tmp_upper_nb) + '        '
 			sys.stdout.flush()
@@ -404,8 +403,7 @@ def identify_ff():
 				upper_to_lower[tmp_a.resnum] = tmp_a.resname
 		print ''
 	
-		#for a_index in range(0,tmp_lower_nb):
-		for a_index in range(19000,tmp_lower_nb):
+		for a_index in range(0,tmp_lower_nb):
 			#display progress
 			progress = '\r -lower leaflet: processing lipid ' + str(a_index+1) + '/' + str(tmp_lower_nb) + '        '
 			sys.stdout.flush()
@@ -467,7 +465,12 @@ def write_selection_file():
 		leaflet_writer_pml.write(upper_clean, name = "upper")
 		ff_writer_vmd.write(tmp_u2l, name = "ff_u2l")
 		ff_writer_pml.write(tmp_u2l, name = "ff_u2l")
-	
+	else:
+		leaflet_writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/upper")
+		leaflet_writer_pml = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/upper")
+		leaflet_writer_vmd.write(upper_ref, name = "upper")
+		leaflet_writer_pml.write(upper_ref, name = "upper")
+			
 	if len(lower_to_upper.keys()) > 0:
 		#create writers instances
 		leaflet_writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/lower")
@@ -484,7 +487,7 @@ def write_selection_file():
 				tmp_ff_l2u_string += " or (resname " + str(lower_to_upper[r_num]) + " and resnum " + str(r_num) + ")"
 		
 		#create selections
-		lower_clean = lower_ref.selectAtoms(" not (" + str(tmp_ff_u2l_string) + ")")
+		lower_clean = lower_ref.selectAtoms(" not (" + str(tmp_ff_l2u_string) + ")")
 		tmp_l2u = U_ref.selectAtoms(str(tmp_ff_l2u_string))
 		
 		#write selections
@@ -492,6 +495,11 @@ def write_selection_file():
 		leaflet_writer_pml.write(lower_clean, name = "lower")
 		ff_writer_vmd.write(tmp_l2u, name = "ff_l2u")
 		ff_writer_pml.write(tmp_l2u, name = "ff_l2u")
+	else:
+		leaflet_writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/lower")
+		leaflet_writer_pml = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/lower")
+		leaflet_writer_vmd.write(lower_ref, name = "lower")
+		leaflet_writer_pml.write(lower_ref, name = "lower")
 
 	return
 

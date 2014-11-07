@@ -516,7 +516,7 @@ if args.neighbours == "no":
 identify_ff()
 if nb_ff > 0:
 	write_selection_file()
-	print "\nFinished successfully!", str(nb_ff), " flip-flops detected, check results in ", str(args.output_folder)
+	print "\nFinished successfully!", str(nb_ff), "flip-flops detected, check results in", str(args.output_folder)
 else:
 	print "\nFinished successfully! 0 flip-flops detected."
 

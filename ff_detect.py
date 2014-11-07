@@ -176,6 +176,7 @@ except:
 try:
 	import MDAnalysis
 	from MDAnalysis import *
+	import MDAnalysis.selections
 	import MDAnalysis.analysis
 	import MDAnalysis.analysis.leaflet
 	import MDAnalysis.analysis.distances
@@ -387,7 +388,8 @@ def identify_ff():
 		tmp_upper_resnums = upper_ref.resnums()
 		tmp_lower_resnums = lower_ref.resnums()
 
-		for a_index in range(0,tmp_upper_nb):
+		#for a_index in range(0,tmp_upper_nb):
+		for a_index in range(0,1):
 			#display progress
 			progress = '\r -upper leaflet: processing lipid ' + str(a_index+1) + '/' + str(tmp_upper_nb) + '        '
 			sys.stdout.flush()
@@ -402,7 +404,8 @@ def identify_ff():
 				upper_to_lower[tmp_a.resnum] = tmp_a.resname
 		print ''
 	
-		for a_index in range(0,tmp_lower_nb):
+		#for a_index in range(0,tmp_lower_nb):
+		for a_index in range(19000,tmp_lower_nb):
 			#display progress
 			progress = '\r -lower leaflet: processing lipid ' + str(a_index+1) + '/' + str(tmp_lower_nb) + '        '
 			sys.stdout.flush()
@@ -424,19 +427,37 @@ def identify_ff():
 
 def write_selection_file():
 	
+	#text format
+	#-----------
 	#open file
 	output_sele = open(os.getcwd() + '/' + args.output_folder + '/flipflop.sele', 'w')
-	
 	#upper to lower
 	for r_num in upper_to_lower.keys():
 		output_sele.write(str(upper_to_lower[r_num]) + "," + str(r_num) + ",upper," + str(args.beadname) + "\n")
-
 	#lower to upper
 	for r_num in lower_to_upper.keys():
 		output_sele.write(str(lower_to_upper[r_num]) + "," + str(r_num) + ",lower," + str(args.beadname) + "\n")
-	
 	output_sele.close()
 	
+	#vmd and pml format
+	#------------------
+	if len(upper_to_lower.keys()) > 0:
+		writer_vmd = writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/ff_upper_to_lower")
+		writer_pml = writer_vmd = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/ff_upper_to_lower")
+		tmp_u2l = MDAnalysis.core.AtomGroup.AtomGroup([])
+		for r_num in upper_to_lower.keys():
+			tmp_u2l += U_ref.selectAtoms("resname " + str(upper_to_lower[r_num]) + " and resnum " + str(r_num))
+		writer_vmd.write(tmp_u2l)
+		writer_pml.write(tmp_u2l)
+	if len(lower_to_upper.keys()) > 0:
+		writer_vmd = writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/ff_lower_to_upper")
+		writer_pml = writer_vmd = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/ff_lower_to_upper")
+		tmp_l2u = MDAnalysis.core.AtomGroup.AtomGroup([])
+		for r_num in upper_to_lower.keys():
+			tmp_l2u += U_ref.selectAtoms("resname " + str(upper_to_lower[r_num]) + " and resnum " + str(r_num))
+		writer_vmd.write(tmp_l2u)
+		writer_pml.write(tmp_l2u)
+
 	return
 
 ################################################################################################################################################

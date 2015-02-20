@@ -5,14 +5,14 @@ from operator import itemgetter
 import sys, os, shutil
 import os.path
 
-################################################################################################################################################
+##########################################################################################
 # RETRIEVE USER INPUTS
-################################################################################################################################################
+##########################################################################################
 
 #=========================================================================================
 # create parser
 #=========================================================================================
-version_nb = "0.0.1"
+version_nb = "0.0.2"
 parser = argparse.ArgumentParser(prog='ff_detect', usage='', add_help=False, formatter_class=argparse.RawDescriptionHelpFormatter, description=\
 '''
 **********************************************
@@ -21,19 +21,19 @@ author: Jean Helie (jean.helie@bioch.ox.ac.uk)
 git: https://github.com/jhelie/ff_detect
 **********************************************
 	
-TO DO: implement the 'classic' approach back.
-
 [ DESCRITPION ]
 
 This script identifies the phospholipids which flip-flopped between two frames and
 outputs a file with their respective selection strings following the format:
  -> 'resname,resid,starting_leaflet,beadname'
 	
+
 [ REQUIREMENTS ]
 
 The following python modules are needed :
  - MDAnalysis
  - matplotlib
+
 
 [ NOTES ]
 
@@ -74,16 +74,17 @@ The following python modules are needed :
     in the first. Flip-flopping lipids are simply detected by comparing the content of the
     upper and lower leaflets in each file.
 
-   (b) for systems in which lipids are still flip-flopping and the bilayer deforms significantly
-   an other approach can be specified via the --neighbours flag.
+   (b) for systems in which it is not easy to identify leaflets in the second structure file
+   (eg very large sytems deforming significantly or systems in which lipids in the process
+   of flip-flopping 'bridge' the two leaflets together), the --neighbours option must be used.
+   
    In this case the neighbouring lipds of each lipid are calculated and if more than half the
-   neighbours of a given lipid belong to the opposite leaflet than its initial leaflet then this
-   lipid is considered to have flip-flopped.
-   For large systems deforming a lot and involving several flip-flpos it is, for now, the only
-   solution but it is VERY slow. But you should only have to do it once to get the list of
-   flip-flopping lipids.
+   neighbours of a given lipid belong to the opposite leaflet than its initial leaflet then
+   this lipid is considered to have flip-flopped.
+   
    The argument of --neighbours correspond to the max distance (in Angstrom) within which to
-   consider neighbours.
+   consider neighbours. This method can be VERY slow for VERY large systems.
+
 
 [ USAGE ]
 
@@ -237,10 +238,16 @@ else:
 # FUNCTIONS DEFINITIONS
 ##########################################################################################
 
-global nb_ff
+#=========================================================================================
+# data loading
+#=========================================================================================
+
+global nb_ff, nb_u2l, nb_l2u
 global U_ref, U_gro
 global upper_ref, upper_gro, lower_ref, lower_gro
 nb_ff = 0
+nb_u2l = 0
+nb_l2u = 0
 upper_to_lower = {}
 lower_to_upper = {}
 
@@ -254,6 +261,11 @@ def data_loading():
 	print " -" + str(args.grofilename) + "..."
 	U_gro = Universe(args.grofilename)
 	return
+
+#=========================================================================================
+# core functions
+#=========================================================================================
+
 def identify_leaflets_ref():
 
 	global upper_ref
@@ -330,12 +342,12 @@ def identify_leaflets_gro():
 
 
 	#display results	
-	print " -found 2 leaflets: " + upper_gro.numberOfResidues() + "(upper) and " + lower_gro.numberOfResidues() + "(lower) lipids"
+	print " -found 2 leaflets: " + str(upper_gro.numberOfResidues()) + "(upper) and " + str(lower_gro.numberOfResidues()) + "(lower) lipids"
 	
 	return
 def identify_ff():
 
-	global nb_ff
+	global nb_ff, nb_u2l, nb_l2u
 	
 	print "\nIdentifying flip-flopping lipids..."
 	
@@ -343,43 +355,18 @@ def identify_ff():
 	#--------------------------
 	if args.neighbours == "no":
 		
-		##compare contents
-		#upref_to_lwgro = np.setdiff1d(upper_ref.resnums(),upper_gro.resnums())		#lipids in upper_ref NOT in upper_gro
-		#lwref_to_upgro = np.setdiff1d(lower_ref.resnums(),lower_gro.resnums())		#lipids in lower_ref NOT in lower_gro
-		#upgro_to_lwref = np.setdiff1d(upper_gro.resnums(),upper_ref.resnums())		#lipids in upper_gro NOT in upper_ref
-		#lwgro_to_upref = np.setdiff1d(lower_gro.resnums(),lower_ref.resnums())		#lipids in lower_gro NOT in lower_ref
-
-		##build lists
-		#for r in upref_to_lwgro:										#lipids in upper1 NOT in upper2
-			#tmp = U_ref.selectAtoms("resid " + str(r))
-			#if tmp.resnames()[0] in ff_uref_to_lgro.keys():
-				#ff_uref_to_lgro[tmp.resnames()[0]].append(r)
-			#else:
-				#ff_uref_to_lgro[tmp.resnames()[0]]=[]
-				#ff_uref_to_lgro[tmp.resnames()[0]].append(r)
-		#for r in lwref_to_upgro:										#lipids in lower1 NOT in lower2
-			#tmp = U_ref.selectAtoms("resid " + str(r))
-			#if tmp.resnames()[0] in ff_lref_to_ugro.keys():
-				#ff_lref_to_ugro[tmp.resnames()[0]].append(r)
-			#else:
-				#ff_lref_to_ugro[tmp.resnames()[0]]=[]
-				#ff_lref_to_ugro[tmp.resnames()[0]].append(r)
-		#for r in upgro_to_lwref:										#lipids in upper2 NOT in upper1
-			#tmp=U_ref.selectAtoms("resid " + str(r))
-			#if tmp.resnames()[0] in ff_ugro_to_lref.keys():
-				#ff_ugro_to_lref[tmp.resnames()[0]].append(r)
-			#else:
-				#ff_ugro_to_lref[tmp.resnames()[0]]=[]
-				#ff_ugro_to_lref[tmp.resnames()[0]].append(r)
-		#for r in lwgro_to_upref:										#lipids in lower2 NOT in lower1
-			#tmp=U_ref.selectAtoms("resid " + str(r))
-			#if tmp.resnames()[0] in ff_lgro_to_uref.keys():
-				#ff_lgro_to_uref[tmp.resnames()[0]].append(r)
-			#else:
-				#ff_lgro_to_uref[tmp.resnames()[0]]=[]
-				#ff_lgro_to_uref[tmp.resnames()[0]].append(r)	
-		print "TO DO"
-
+		#upper to lower: lipids in upper_ref NOT in upper_gro
+		upref_to_lwgro = np.setdiff1d(upper_ref.resnums(),upper_gro.resnums())
+		for r_num in upref_to_lwgro:
+			tmp_a = upper_ref.selectAtoms("resid " + str(r_num))
+			upper_to_lower[tmp_a.resnums()[0]] = tmp_a.resnames()[0]
+		
+		#lower to upper: lipids in lower_ref NOT in lower_gro
+		lwref_to_upgro = np.setdiff1d(lower_ref.resnums(),lower_gro.resnums())
+		for r_num in lwref_to_upgro:
+			tmp_a = lower_ref.selectAtoms("resid " + str(r_num))
+			lower_to_upper[tmp_a.resnums()[0]] = tmp_a.resnames()[0]
+		
 	#method 2: compare neighbours
 	#----------------------------
 	else:
@@ -391,6 +378,7 @@ def identify_ff():
 		tmp_lower_resnums = lower_ref.resnums()
 		tmp_U_gro_lip = U_gro.selectAtoms("name " + str(args.beadname))
 		
+		#upper to lower
 		for a_index in range(0,tmp_upper_nb):
 			#display progress
 			progress = '\r -upper leaflet: processing lipid ' + str(a_index+1) + '/' + str(tmp_upper_nb) + '        '
@@ -410,6 +398,7 @@ def identify_ff():
 					upper_to_lower[tmp_a.resnum] = tmp_a.resname
 		print ''
 	
+		#lower to upper
 		for a_index in range(0,tmp_lower_nb):
 			#display progress
 			progress = '\r -lower leaflet: processing lipid ' + str(a_index+1) + '/' + str(tmp_lower_nb) + '        '
@@ -430,30 +419,48 @@ def identify_ff():
 					lower_to_upper[tmp_a.resnum] = tmp_a.resname
 		print ''
 		
-		#count nb of flip-flopping lipids
-		nb_ff = len(upper_to_lower.keys()) + len(lower_to_upper.keys())
+	#count nb of flip-flopping lipids
+	#--------------------------------
+	nb_u2l = len(upper_to_lower.keys())
+	nb_l2u = len(lower_to_upper.keys())
+	nb_ff = nb_u2l + nb_l2u
 		
 	return
 
-def write_selection_file():
+#=========================================================================================
+# outputs
+#=========================================================================================
+
+def write_sele_file():
 	
-	print "\nWriting selection files..."
-	
-	#text format
-	#-----------
 	#open file
+	print " - .sele file..."
 	output_sele = open(os.getcwd() + '/' + args.output_folder + '/flipflop.sele', 'w')
+
 	#upper to lower
-	for r_num in upper_to_lower.keys():
-		output_sele.write(str(upper_to_lower[r_num]) + "," + str(r_num) + ",upper," + str(args.beadname) + "\n")
+	#--------------
+	if nb_u2l > 0:
+		tmp_sorted = sorted(upper_to_lower.items(), key=operator.itemgetter(1))
+		for r in range(0,nb_u2l):
+			output_sele.write(str(tmp_sorted[r][1]) + "," + str(tmp_sorted[r][0]) + ",upper," + str(args.beadname) + "\n")
+	
 	#lower to upper
-	for r_num in lower_to_upper.keys():
-		output_sele.write(str(lower_to_upper[r_num]) + "," + str(r_num) + ",lower," + str(args.beadname) + "\n")
+	#--------------
+	if nb_l2u > 0:
+		tmp_sorted = sorted(lower_to_upper.items(), key=operator.itemgetter(1))
+		for r in range(0,nb_l2u):
+			output_sele.write(str(tmp_sorted[r][1]) + "," + str(tmp_sorted[r][0]) + ",lower," + str(args.beadname) + "\n")
+	
 	output_sele.close()
 	
-	#vmd and pml format
-	#------------------
-	if len(upper_to_lower.keys()) > 0:
+	return
+def write_pml_vmd_file():
+
+	print " - .pml and .vmd files..."
+	
+	#upper to lower
+	#--------------
+	if nb_u2l > 0:
 		#create writers instances
 		leaflet_writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/upper")
 		leaflet_writer_pml = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/upper")
@@ -483,7 +490,9 @@ def write_selection_file():
 		leaflet_writer_vmd.write(upper_ref, name = "upper")
 		leaflet_writer_pml.write(upper_ref, name = "upper")
 			
-	if len(lower_to_upper.keys()) > 0:
+	#lower to upper
+	#--------------
+	if nb_l2u > 0:
 		#create writers instances
 		leaflet_writer_vmd = MDAnalysis.selections.vmd.SelectionWriter(args.output_folder + "/lower")
 		leaflet_writer_pml = MDAnalysis.selections.pymol.SelectionWriter(args.output_folder + "/lower")
@@ -515,18 +524,28 @@ def write_selection_file():
 
 	return
 
-################################################################################################################################################
-# ALGORITHM
-################################################################################################################################################
 
+##########################################################################################
+# ALGORITHM
+##########################################################################################
+
+#load data
 data_loading()
+
+#identify leaflets in file(s) supplied
 identify_leaflets_ref()
 if args.neighbours == "no":
 	identify_leaflets_gro()
+
+#identifiy flip-flops
 identify_ff()
+
+#write outputs
 if nb_ff > 0:
-	write_selection_file()
-	print "\nFinished successfully!", str(nb_ff), "flip-flops detected, check results in", str(args.output_folder)
+	print "\nWriting selection files..."
+	write_sele_file()
+	write_pml_vmd_file()
+	print "\nFinished successfully!", str(nb_ff), "flip-flops detected (" + str(nb_u2l) + " u->l and " + str(nb_l2u) + " l->u), check results in folder '" + str(args.output_folder) + "'"
 else:
 	print "\nFinished successfully! 0 flip-flops detected."
 

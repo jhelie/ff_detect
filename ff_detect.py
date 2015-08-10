@@ -12,7 +12,7 @@ import os.path
 #=========================================================================================
 # create parser
 #=========================================================================================
-version_nb = "0.0.2"
+version_nb = "0.0.3"
 parser = argparse.ArgumentParser(prog='ff_detect', usage='', add_help=False, formatter_class=argparse.RawDescriptionHelpFormatter, description=\
 '''
 **********************************************
@@ -115,7 +115,7 @@ parser.add_argument('-o', nargs=1, dest='output_folder', default=['no'], help=ar
 #lipids identification
 parser.add_argument('--bead', nargs=1, dest='beadname', default=['PO4'], help=argparse.SUPPRESS)
 parser.add_argument('--leaflets', nargs=1, dest='cutoff_leaflet', default=['optimise'], help=argparse.SUPPRESS)
-parser.add_argument('--neighbours', nargs='?', dest='neighbours', default=["no"], const=[15], help=argparse.SUPPRESS)
+parser.add_argument('--neighbours', nargs='?', dest='neighbours', default="no", const="15", help=argparse.SUPPRESS)
 
 #other options
 parser.add_argument('--version', action='version', version='%(prog)s v' + version_nb, help=argparse.SUPPRESS)
@@ -135,7 +135,6 @@ args.output_folder = args.output_folder[0]
 #lipids identification
 args.beadname = args.beadname[0]
 args.cutoff_leaflet = args.cutoff_leaflet[0]
-args.neighbours = args.neighbours[0]
 
 #=========================================================================================
 # import modules (doing it now otherwise might crash before we can display the help menu!)

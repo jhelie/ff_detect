@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(prog='ff_detect', usage='', add_help=False, for
 '''
 **********************************************
 v''' + version_nb + '''
-author: Jean Helie (jean.helie@bioch.ox.ac.uk)
+author: Jean Helie (jean.helie@gmail.com)
 git: https://github.com/jhelie/ff_detect
 **********************************************
 	
